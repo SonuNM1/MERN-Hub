@@ -214,3 +214,7 @@ It describes the format of a file. This ensures you only allow safe file types.
 Example: If you deploy on AWS Mumbai. But user is in Canada -> slow 
 
     CDN copies your video to Canada -> fast. 
+
+
+
+## Why console statements not in PRODUCTION? 

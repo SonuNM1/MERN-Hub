@@ -1,37 +1,38 @@
 import ImageKit from "imagekit";
 
-// Creating an ImageKit instance 
+// Lazy initialization - only create ImageKit when first needed
+let imagekit = null;
 
-console.log("PUBLIC KEY:", process.env.IMAGEKIT_PUBLIC_KEY);
 
-const imagekit = new ImageKit({
-    publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
-    privateKey: process.env.IMAGEKIT_PRIVATE_KEY, 
-    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
-})
+function getImageKit() {
+    if (!imagekit) {
+        
+        imagekit = new ImageKit({
+            publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+            privateKey: process.env.IMAGEKIT_PRIVATE_KEY, 
+            urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
+        });
+    }
+    return imagekit;
+}
 
 // receives a file (base64 or buffer), receives a filename, uploads it to ImageKit, returns the uploaded file details 
 
-async function uploadFile(file, fileName){
-    const result = await imagekit.upload({
+async function uploadFile(file, fileName) {
+    const kit = getImageKit(); // Get instance when needed
+    const result = await kit.upload({
         file: file, 
         fileName: fileName 
-    })
-
-    return result ; 
+    });
+    return result;
 }
 
-export default uploadFile ; 
-
+export default uploadFile;
 
 /*
-
 A file upload service that uploads files to ImageKit, a cloud storage + CDN provider. 
-
-This file is a "service layer". Service layer means we write a reusable code here, controllers can call this service, keeps controllers clean, centralizes all upload logic in one place. 
-
-This is good because if tomorrow if we swithc from ImageKit -> AWS S3 -> Cloudinary, we only change this ONE file, not your entire app. This is professional best practice. 
-
-
-
+This file is a "service layer". Service layer means we write a reusable code here, 
+controllers can call this service, keeps controllers clean, centralizes all upload logic in one place. 
+This is good because if tomorrow if we switch from ImageKit -> AWS S3 -> Cloudinary, 
+we only change this ONE file, not your entire app. This is professional best practice.
 */
