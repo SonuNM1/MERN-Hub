@@ -130,7 +130,7 @@ async function logoutUser(_, res) {
 
 async function registerFoodPartner(req, res) {
   try {
-    const { fullName, email, password } = req.body;
+    const { fullName, email, password, phone, address, contactName} = req.body;
 
     const isAccountAlreadyExists = await foodPartnerModel.findOne({
       email,
@@ -148,6 +148,9 @@ async function registerFoodPartner(req, res) {
       fullName,
       email,
       password: hashedPassword,
+      phone, 
+      address,
+      contactName 
     });
 
     return res.status(201).json({
@@ -156,6 +159,9 @@ async function registerFoodPartner(req, res) {
         _id: foodPartner._id,
         email: foodPartner.email,
         fullName: foodPartner.fullName,
+        address: foodPartner.address,
+        phone: foodPartner.phone,
+        contactName: foodPartner.contactName
       },
     });
 

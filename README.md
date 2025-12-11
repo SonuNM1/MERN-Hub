@@ -284,29 +284,421 @@ Node's job become only: Create a signed URL, Save the final file URL in DB, Node
 
         {
             uploadURL: "https://ik.imagekit.io/....",
-            token: "...", 
-            expiry: 1698347839, 
-            signature: "..." 
+            token: "...",
+            expiry: 1698347839,
+            signature: "..."
         }
 
-- Step 2: Frontend uploads the video directly to ImageKit 
+- Step 2: Frontend uploads the video directly to ImageKit
 
-- Step 3: Frontend sends the final file URL to backend 
+- Step 3: Frontend sends the final file URL to backend
 
 Backend only stores: name, description, video URL, food partner ID
 
-    No video byte ever touches your Node server. 
+    No video byte ever touches your Node server.
 
+## DAO File - Data Access Object
 
+DAO is a file that handles all communication between the server and database. It's a pattern used in backend development that:
 
-## DAO File - Data Access Object 
+- Organizes how your server talks to the database
 
-
-DAO is a file that handles all communication between the server and database. It's a pattern used in backend development that: 
-
-- Organizes how your server talks to the database 
-
-- Separates database logic from controller logic 
+- Separates database logic from controller logic
 
 - Makes code maintainable and clean
 
+### Design a web/app that works offline and syncs data when the user comes online.
+
+Additional Challenges:
+
+- Multiple users may edit the same time -> conflict handling
+
+- User stays offline for a long time -> local storage + sync strategy
+
+- Real-world use cases -> collaboration apps, notes, field apps
+
+This is a classic "Offline-First Architecture" / PWA sync system desing question
+
+- **High-Level Architecture**
+
+Frontend (Offline-first)
+⬇
+Local Database (IndexedDB / SQLite / Realm)
+⬇
+Sync Manager
+⬇
+Backend API (Versioning + Conflict Resolver)
+⬇
+Cloud Database
+
+
+- **How does the app work offline?** 
+
+  Use a local database on the device: 
+
+    - Web -> IndexedDB 
+    - Mobile -> SQLite/Realm
+    - Desktop -> Local Storage + file cache 
+
+  Everything the user does is saved locally: 
+
+    - Create item, Edit item, Delete item 
+
+  All actions are stored in a local "Sync Queue" 
+
+
+- **How does sync work when online returns?** 
+
+When network is back: The app sends 
+
+1. Unsynced Operations (Create, Update, Delete)
+
+2. Each operation contains: itemId, operationType, payload, lastUpdatedAt timestamp, deviceId 
+
+  Backend processes them one-by-one and responds with results. 
+
+  Frontend updates local DB and clears synced operations. 
+
+
+3. **What if multiple users edit the same item?**
+
+This is the tricky part - iinterviweres test your conflict resolution knowledge 
+
+You mention one of these strategies: 
+
+- Last Write Wins (LWW): 
+
+  Backend stores: lastUpdatedAt, lastUpdatedBy 
+
+  The latest timestamp overwrites previous. 
+
+  Pros: Simple. Cons: Users may lose data
+
+- Merge Strategy (Google Docs Style)
+
+    If two users edit different parts -> merge automatically 
+
+    If same field -> raise conflict dialog 
+
+    Used in: Google Docs, Figma, Notion 
+
+- Ask user to choose (Manual conflict resolution)
+
+  If backend detects conflict: 
+
+    Your version: 
+    Server version: 
+
+    Choose which one to keep. 
+
+    Used in: Git, Note apps 
+
+
+4. **What if the user stays offline for a long time?** 
+
+- Keep storing data locally (IndexedDB/SQLite supports large offline storage)
+
+- Keep storing operations in "Sync Queue" indefinitely 
+
+- Sync in batches when online 
+
+- Local storage cleanup after sync 
+
+
+5. Real-World Scenarios
+
+| App Type                                | Why Offline                       |
+| --------------------------------------- | --------------------------------- |
+| **Google Docs / Sheets**                | Work offline → Sync when online   |
+| **Notion / Evernote**                   | Notes created offline             |
+| **WhatsApp**                            | Sends messages later when online  |
+| **Field apps (Delivery, Construction)** | Workers in areas with no internet |
+| **E-commerce carts**                    | Cart updated offline              |
+
+
+
+## User Double Clicks the Pay Button - How do you STOP duplicate API Calls 
+
+
+Users double-clicking buttons can trigger duplicate API calls, which can cause double payments, double submissions, or inconsistent state. 
+
+- Problem: User clicks "Pay" button. First API call is sent. Before it completes, user clicks again. Second API call is sent -> duplicate transaction. 
+
+- Consequences: Double charges. Duplicate records in DB. Confusing UI feedback. 
+
+- Solutions: 
+
+1. Frontend: Disable the button imeediately after the first click and re-enable it only after API responds (success/error)
+
+  Pros: Easy, immediate feedback
+  Cons: Only protects the client; if API is called by multiple tabs/devices, duplicates can still happen 
+
+2. Backend: Idempotency Keys 
+
+  Backend can ignore duplicate requests using a unique "idempotency key" sent from frontend. 
+
+  Many payment providers (Stripe, PayPal) rely on this. 
+
+  Pros: Safe against multiple clicks and multiple devices 
+
+  Cons: Requires backend implementation and storage for keys 
+
+
+3. Debounce/Throttle Clicks: Use debouncing to limit how frequently an action can fire. 
+
+  const handleClick = debounce(async () => {
+    await pay() ; 
+  }, 1000)
+
+  
+  Simple but still doesn't guarantee backend safety. 
+
+
+4. Backend: Transaction/DB-Level Safety 
+
+  Ensure database enforces uniqueness: Example - Only allow one payment per order ID 
+
+  Even if API is called multiple times, duplicates are rejected 
+
+  Pros: Most reliable, prevents duplicates even if frontend fails. 
+
+  Cons: Requires proper DB design and constraints
+
+
+**Recommended Approach:**
+
+- FRONTEND: Disable button immediately or show loading state 
+
+- BACKEND: Implement idempotency (key) and DB-level safety 
+
+- OPTIONAL: Use debounce for extra protection on fast clicks 
+
+  Combining frontend + Backend solutions is industry standard, especially for payments. 
+
+
+
+## Rendering Optimization 
+
+
+Rendering optimization refers to techniques used to reduce unnecessary re-renders or repaints in the browser, improving: 
+
+  Performance (faster load and interaction) ; Responsiveness (smoother UI) ; Batter/memory usage (especially important for mobile devices)
+
+Every time a component re-renders, the browser: 
+
+1. Runs JavaScript to calculate what changed
+2. Updates the Virtual DOM (in React) or DOM tree
+3. Updates the actual DOM 
+4. Repaints/reflows the screen 
+
+Unnecessary renders make apps slow, especially for large or dynamic UIs. 
+
+**Why It Happens**
+
+- State Changes: A state update triggers a re-render 
+
+- Props Changes: Passing new props to child components triggers re-render 
+
+- Parent re-renders: Even if child props didn't change, child may re-render 
+
+- Complex Component trees: Deep nesting amplifies cost 
+
+
+**Key Techniques for Optimization**
+
+1. React Memoization 
+
+  React.memo() prevents re-renders if props didnt change
+
+2. useCallback & useMemo 
+
+  memoizes functions and expensive calculations to avoid unnecessayr re-renders in children 
+
+3. Virtualization / Windowing 
+
+  Only render visible items in long lists (React-Window, React-Virtualized)
+
+  Example: Rendering 10,000 items instead of 10 on screen is wasteful 
+
+4. Code-Splitting & Lazy Loading 
+
+  Split bundles using "React.lazy" and "Suspense" to load only what user sees. 
+
+  Reduces initial load time. 
+
+5. Avoid Unnecessary DOM Manipulation 
+
+  Minimize changes to the DOM. Batch updates if possible 
+
+6. Key Prop Usage 
+
+  In lists, always provide stable keys to help React reuse components instead of re-creating them 
+
+7. Avoid State Overuse 
+
+  Don't put everything in state; derived values can be computed instead. 
+
+  Too many state updates -> more re-renders 
+
+
+**Rendering Optimization is all about:**
+
+- Reducing unnecessary updates
+- memoization (React.memo, useMemo, useCallback)
+- Virtualization for large lists 
+- Code splitting/lazy loading
+- Efficient state and prop management 
+
+
+## How Browsers Render Webpages (Rendering Pipeline)
+
+
+- Step 1: HTML -> DOM (Document Object Model)
+
+  Browser parses HTML token by token 
+
+  Creates a tree structure -> DOM tree
+
+- Step 2: CSS -> CSSOM (CSS Object Model)
+
+  Browser parses CSS files and inline styles 
+
+  Creates CSSOM tree 
+
+- Step 3: Browser creates Render Tree describing Visual layout 
+
+
+
+## Update Email API - Handling Concurrency (Multiple Users Updating Same Email)
+
+
+If multiple users attempt to update their email at the same time, we must prevent: 
+
+  Duplicate emails, Partial updates, Race conditions 
+
+1. Database-Level Constraints 
+
+Add a unique constraint on the email field 
+
+  email: {
+    type: String, 
+    unique: true, 
+    required: true 
+  }
+
+  This guarantees: Even if two requests hit at the same time, only one succeeds. The second gets a duplicate key error 
+
+  Database-level locking is the strongest protection. 
+
+2. Extra Protection - Optimistic Locking (Version Control), Pessimistic Locking 
+
+
+  - Optimistic locking: MongoDB documents support a "_v" field. We can enforce: 
+
+    Only update if version matches. Prevent overwriting stale data. 
+
+  - Pessimistic locking: Like SQL transactions: "Lock user row while updating" 
+
+  MongoDB has transations too. Used in highly critical systems. 
+
+
+
+## System Design + Distributed Systems + High-Level Backend Engineering 
+
+- Concurrency 
+- Race conditions 
+- Optimistic/Pessimistic Locking 
+- Offline Sync 
+- Conflict Resolution
+- Idempotency 
+- Caching
+- Eventual Consistency 
+- Replication 
+- Atomic Operations 
+- Consistency models
+- Distributed transactions 
+- Scalability 
+- Rate limiting 
+- Load balancing 
+- Queues
+- sync/async pipelines
+
+These are NOT tied to any one technology. They are pure software engineering + system design fundamentals. 
+
+**WHERE to get these types of Questions**
+
+- System design interview questions for beginners 
+
+- Backend Engineering Interview Questions 
+
+- Distributed Systems Interview Questions
+
+- Database Concurrency Questions 
+
+- High-level Design Scenario 
+
+
+## 1. Two users try to update the same document at same time - how do you prevent conflicts? 
+
+Concepts: 
+
+  - Optimistic locking
+  - Version numbers
+  - Last-Write-Wins
+  - Database transactions 
+
+## 2. User double-clicks "BUY NOW" - how do you prevent duplicate payment? 
+
+Concepts: 
+
+  - Idempotency keys 
+  - deduplication 
+  - transaction isolation levels
+  - distributed locks 
+
+## 3. User uploads a 5GB video - how do you handle uploads without crashing server? 
+
+Concepts: 
+
+  - Streams
+  - Signed URLs
+  - Chunked Uploads
+  - Resumable uploads 
+  - backpressure 
+
+## 4. User uses app offline and make changes - how do you sync when online? 
+
+Concepts: 
+
+  - Offline-first architecture
+  - Vector clocks
+  - CRDTs
+  - Merge conflicts 
+  - Optimistic UI 
+
+## 5. A million users send requests at the same time - how do you protect database? 
+
+Concepts: 
+
+  - Load balancing 
+  - caching 
+  - rate limiting 
+  - eventual consistency 
+  - queues (Kafka, RabbitMQ)
+
+## 7. User updates their password - how do you prevent session hijacking? 
+
+Concepts: 
+
+  - JWT Invalidation 
+  - Session rotation 
+  - Token revocation 
+  - Refresh token store 
+
+## 8. Two admins try to update product inventory - how do you avoid negative stock? 
+
+Concepts: 
+
+  - Optimistic/pessimistic locking 
+  - Atomic operations 
+  - Transactions with ACID 
