@@ -1,6 +1,6 @@
 import express from "express"
-import createFood from "../controllers/food.controller.js";
-import authFoodPartnerMiddleware from "../middlewares/auth.middleware.js";
+import {createFood, getFoodItems} from "../controllers/food.controller.js";
+import { authFoodPartnerMiddleware, authUserMiddleware } from "../middlewares/auth.middleware.js";
 import multer from 'multer'
 
 const router = express.Router() ; 
@@ -13,6 +13,17 @@ const upload = multer({
 
 // .single("video") -> expects one file in the form-data with key "video". Multer parses the request and puts the file inside "req.file". Other fields from form-data are available in "req.body"
 
-router.post('/', authFoodPartnerMiddleware, upload.single("video"), createFood)
+router.post('/',
+    authFoodPartnerMiddleware, 
+    upload.single("video"), 
+    createFood
+)
+
+// This route is for users, they will see the videos/content created by the food partner 
+
+router.get('/',
+    authUserMiddleware, 
+    getFoodItems
+)
 
 export default router ; 
