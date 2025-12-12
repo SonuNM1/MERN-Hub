@@ -1,3 +1,35 @@
 /* universal selector - select every element on the page. It targets everything div, p, h1, img, button, body, html */
 @import "tailwindcss" ; 
 
+/* Smooth floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-18px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Slower floating animation */
+.animate-float-slow {
+  animation: float 7s ease-in-out infinite;
+}
+
+/* Delayed floating animation */
+.animate-float-delayed {
+  animation: float 5s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+/* Wave animation (left-right motion) */
+@keyframes wave {
+  0%, 100% { transform: translateX(0px); }
+  50% { transform: translateX(15px); }
+}
+
+.animate-wave {
+  animation: wave 6s ease-in-out infinite;
+}
+
+

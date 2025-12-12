@@ -7,16 +7,18 @@ const axiosClient = axios.create({
 
 // Request Interceptor - runs BEFORE every request. Purpose: attach token to headers 
 
-axiosClient.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token") ;
+axiosClient.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem("token") ;
 
-    if(token){
-        config.headers.Authorization = `Bearer ${token}` ;
+        if(token){
+            config.headers.Authorization = `Bearer ${token}` ;
+        }
 
-        return config ; 
-    }
-    (error) => Promise.reject(error) ;
-})
+        return config; 
+    }, 
+    (error) => Promise.reject(error)
+)
 
 // Response Interceptor - runs AFTER every response. Purpose: helps catch errors globally 
 

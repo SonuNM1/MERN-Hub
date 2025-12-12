@@ -85,3 +85,48 @@ CSS: @media (prefers-color-scheme: dark)
 
   Frontend = UX 
   Backend = Security 
+
+
+
+## Code Pipeline me ftt gya 
+
+It means: Something broke in the CI/CD deployment pipeline. 
+
+Pipeline = automation of: build, test and deploy 
+
+It means DevOps chain failed somewhere. 
+
+
+## If loading state is global -> use Context API - Centralize loading state 
+
+
+
+## WHERE can we use Context API or Redux in project? 
+
+**Perfect use-cases for Context API**
+
+- Auth User (logged-in user, token)
+- Global loading spinner 
+- Theme, language, UI preferences 
+
+**Perfect use-cases for Redux/Zustand**
+
+Use only if your state is: 
+
+- large
+- updated frequently
+- shared across many unrelated components 
+- Needs caching/undo/advanced features 
+
+Possible Redux use cases: 
+
+- Cart system
+- Real-time partner dashboard (orders)
+- Delivery partner live-tracking 
+- Large analytics dashboard 
+
+
+## Controlled Vs. Uncontrolled Inputs 
+
+
+## Server-side error parsing helper 
